@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Convert Maestro CT entries to one mmCIF data block with one model per entry.
 
-Usage: python3 mae_to_mmcif.py [multientry.mae] [-o multientry.cif]
+Run python3 mae_to_mmcif.py --help for the command-line options.
 Uses the Python 3.10+ standard library. Coordinates stay in their source frames.
 Partial CTs inherit missing fields from the preceding full CT. Components with
 incompatible bond templates get distinct identifiers.
@@ -805,16 +805,33 @@ def convert(source, destination):
     return len(models), atom_count, sum(len(model.bonds) for model in models)
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("input", nargs="?", type=Path,
-                        default=Path(__file__).resolve().with_name("multientry.mae"),
-                        help="input .mae or .maegz (default: multientry.mae next to this script)")
-    parser.add_argument("-o", "--output", type=Path, help="output mmCIF (default: input name with .cif)")
-    args = parser.parse_args()
-    destination = args.output if args.output is not None else args.input.with_suffix(".cif")
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        usage="%(prog)s [-h] (SOURCE | --input SOURCE) [-o DESTINATION]",
+        description=(
+            "Convert a Maestro file to one mmCIF with one model per CT entry.\n"
+            "The export preserves coordinates, bonds and secondary structures.\n"
+            "Supply the input as SOURCE or with --input."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples\n"
+            "  python3 %(prog)s ligand.mae\n"
+            "  python3 %(prog)s --input poses.maegz --output ensemble.cif"
+        ),
+    )
+    inputs = parser.add_mutually_exclusive_group(required=True)
+    inputs.add_argument("source", nargs="?", type=Path, metavar="SOURCE",
+                        help="input .mae, .maegz or .mae.gz file")
+    inputs.add_argument("-i", "--input", type=Path, metavar="SOURCE",
+                        help="input .mae, .maegz or .mae.gz file")
+    parser.add_argument("-o", "--output", type=Path, metavar="DESTINATION",
+                        help="output path (default: replace the input's last extension with .cif)")
+    args = parser.parse_args(argv)
+    source = args.input or args.source
+    destination = args.output or source.with_suffix(".cif")
     try:
-        models, atoms, bonds = convert(args.input, destination)
+        models, atoms, bonds = convert(source, destination)
     except (KeyError, OSError, ValueError) as error:
         parser.exit(1, f"{parser.prog}: {error}\n")
     print(f"{destination}: {models} models, {atoms} atoms, {bonds} bonds")
