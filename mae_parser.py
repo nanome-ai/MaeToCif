@@ -25,7 +25,9 @@ class MAEParser:
     _separator = ":::"
     _empty_value = "<>"
     _component = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)\[(\d+)\]")
-    _property = re.compile(r"[birs]_[A-Za-z0-9_]+")
+    # Like Schrödinger's maeparser, names may contain any character except
+    # whitespace, braces and "[", e.g. r_user_IC50_(nM).
+    _property = re.compile(r"[birs]_[^\s{}\[]+")
 
     class Tokenizer:
         _pattern = re.compile(
